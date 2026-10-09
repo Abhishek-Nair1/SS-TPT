@@ -308,7 +308,7 @@ class ClipTestTimeTuning(nn.Module):
         self.prompt_learner = PromptLearner(clip, classnames, batch_size, n_ctx, ctx_init, ctx_position, learned_cls)
         self.criterion = criterion
 
-        self.normalize = ImageNormalizer(mu, std).cuda(device)
+        self.normalize = ImageNormalizer(mu, std).to(device)
         
     @property
     def dtype(self):

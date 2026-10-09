@@ -287,6 +287,14 @@ def main():
     
     if 'alpha' not in vars(args) or args.alpha == 0.0:
         args.alpha = args.eps / 4.0
+
+    if args.gpu is not None and torch.cuda.is_available():
+        device = torch.device(f"cuda:{args.gpu}")
+    else:
+        device = torch.device("cpu")
+        if args.gpu is not None:
+            print(f"GPU {args.gpu} requested but CUDA is unavailable; running on CPU instead.")
+
     safe_arch = args.arch.replace('/', '_')
     args.output_dir = os.path.join(args.output_dir, safe_arch, args.test_sets, 'eps_'+str(args.eps)+'_alpha_'+str(args.alpha)+'_step_'+str(args.steps)
                                    +'_batchsize_'+str(args.batch_size))
@@ -297,9 +305,7 @@ def main():
     args.out_file.write(print_args(args)+'\n')
     args.out_file.flush()
 
-    assert args.gpu is not None
-
-    print("Use GPU: {} for training".format(args.gpu))
+    print(f"Using device: {device}")
 
     # model
     dset = args.test_sets
@@ -321,7 +327,7 @@ def main():
             classnames = classnames_all
     args.classnames = classnames
 
-    model = get_coop(args.arch, classnames, args.gpu, args.n_ctx, args.ctx_init)
+    model = get_coop(args.arch, classnames, str(device), args.n_ctx, args.ctx_init)
     model_state = None
 
     ###### load robust vision encoder (TeCoA) ######
@@ -340,12 +346,11 @@ def main():
 
     print("=> Model created: visual backbone {}".format(args.arch))
     
-    if not torch.cuda.is_available():
-        print('using CPU, this will be slow')
+    if device.type == 'cuda':
+        torch.cuda.set_device(device)
     else:
-        assert args.gpu is not None
-        torch.cuda.set_device(args.gpu)
-        model = model.cuda(args.gpu)
+        print('using CPU, this will be slow')
+    model = model.to(device)
 
     trainable_param = model.prompt_learner.parameters()
     optimizer = torch.optim.AdamW(trainable_param, args.lr)
@@ -384,7 +389,7 @@ def main():
         args.out_file.write(log_msg)
         args.out_file.flush()
         
-        result = test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state, scaler, args, data_transform)
+        result = test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state, scaler, args, data_transform, device)
         del val_dataset, val_loader
         if args.eps <= 0:
             print_log = "=> Acc. on testset [{}]: SSTPT Clean Acc @1 {}".format(dset, result)
@@ -406,7 +411,7 @@ def main():
         # torch.save(save_log, os.path.join(args.output_dir, 'results_log.pt'))
         
 
-def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state, scaler, args, data_transform):
+def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state, scaler, args, data_transform, device):
     batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
     tpt1 = AverageMeter('SSTPTAcc@1', ':6.2f', Summary.AVERAGE)
 
@@ -432,26 +437,25 @@ def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state,
         logit_scale = model.logit_scale.exp()
     
     for i, (images, target) in enumerate(val_loader):
-        assert args.gpu is not None
-        target = target.cuda(args.gpu, non_blocking=True)
+        target = target.to(device, non_blocking=True)
 
         if args.eps > 0.0:
-            image = images[0].cuda(args.gpu, non_blocking=True)
-            adv_image = atk(image, target)        
+            image = images[0].to(device, non_blocking=True)
+            adv_image = atk(image, target)
             img_adv = transforms.ToPILImage()(adv_image.squeeze(0))
             images = data_transform(img_adv)
             images = [_.unsqueeze(0) for _ in images]
 
         if isinstance(images, list):
             for k in range(len(images)):
-                images[k] = images[k].cuda(args.gpu, non_blocking=True)
+                images[k] = images[k].to(device, non_blocking=True)
             image = images[0]
         else:
             if len(images.size()) > 4:
                 # when using ImageNet Sampler as the dataset
                 assert images.size()[0] == 1
                 images = images.squeeze(0)
-            images = images.cuda(args.gpu, non_blocking=True)
+            images = images.to(device, non_blocking=True)
             image = images
         
         images = torch.cat(images, dim=0)

@@ -1,0 +1,39 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large model checkpoints and cache
+cache/
+*.pt
+*.pth
+*.bin
+*.tar
+*.tar.gz
+*.zip
+
+# Datasets (never commit datasets to Git)
+data/imagenet*/
+data/caltech*/
+data/oxford*/
+data/dtd*/
+data/stanford*/
+data/food*/
+data/sun*/
+data/fgvc*/
+data/eurosat*/
+demo_data/
+
+# Experiment outputs and checkpoints
+output_results/
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
