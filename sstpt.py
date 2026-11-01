@@ -13,6 +13,7 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 
 try:
@@ -160,23 +161,102 @@ def symmetric_kl(p, q, eps=1e-8):
     return 0.5 * (F.kl_div((p+eps).log(), (q+eps), reduction='none', log_target=False).sum(-1) +
             F.kl_div((q+eps).log(), (p+eps), reduction='none', log_target=False).sum(-1))
     
-@torch.no_grad()
-def compute_stability(
+class TinyAugmenterWithTransform(torch.nn.Module):
+    def __init__(
+        self,
+        rotation=5.0,
+        translate=0.04,
+        scale_var=0.08, 
+        brightness=0.08,
+        contrast=0.08,
+        saturation=0.08,
+        hue=0.02,
+        blur_sigma=(0.5, 1.2),
+        noise_sigma=0.02,
+    ):
+        super().__init__()
+        self.rotation = rotation
+        self.translate = translate
+        self.scale_var = scale_var
+        self.color_jitter = transforms.ColorJitter(
+            brightness=brightness,
+            contrast=contrast,
+            saturation=saturation,
+            hue=hue
+        )
+        self.blur_sigma = blur_sigma
+        self.noise_sigma = noise_sigma
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+        angle = float(torch.empty(1).uniform_(-self.rotation, self.rotation).item())
+        max_dx = float(self.translate * W)
+        max_dy = float(self.translate * H)
+        tx = float(torch.empty(1).uniform_(-max_dx, max_dx).item())
+        ty = float(torch.empty(1).uniform_(-max_dy, max_dy).item())
+        scale = float(torch.empty(1).uniform_(1.0 - self.scale_var, 1.0 + self.scale_var).item())
+        
+        x_aug = TF.affine(
+            x,
+            angle=angle,
+            translate=[tx, ty],
+            scale=scale,
+            shear=[0.0, 0.0],
+            interpolation=InterpolationMode.BILINEAR
+        )
+        
+        if random.random() < 0.5:
+            x_aug = self.color_jitter(x_aug)
+        if random.random() < 0.5:
+            sigma = float(torch.empty(1).uniform_(self.blur_sigma[0], self.blur_sigma[1]).item())
+            x_aug = TF.gaussian_blur(x_aug, kernel_size=[5, 5], sigma=[sigma, sigma])
+        if random.random() < 0.5:
+            noise = torch.randn_like(x_aug) * (random.random() * self.noise_sigma)
+            x_aug = (x_aug + noise).clamp(0, 1)
+
+        transform_params = {
+            'angle': angle,
+            'translate': [tx, ty],
+            'scale': scale,
+            'shear': [0.0, 0.0]
+        }
+        return x_aug, transform_params
+
+    def align_spatial_map(self, spatial_map, transform_params):
+        return TF.affine(
+            spatial_map,
+            angle=transform_params['angle'],
+            translate=transform_params['translate'],
+            scale=transform_params['scale'],
+            shear=transform_params['shear'],
+            interpolation=InterpolationMode.BILINEAR
+        )
+
+def compute_stability_and_spatial_consistency(
     model,
     views, 
     base_logits,
     aug_builder,
     K=1,
     divergence='js',
+    use_spatial=False,
+    spat_method='attn',
 ):
-
     model.eval()
     p = base_logits.softmax(dim=-1)
 
+    if use_spatial:
+        base_spatial_map = model.get_spatial_relevance_map(views, method=spat_method)
+    else:
+        base_spatial_map = None
+
     divergences = []
+    spatial_sims = []
+
     for _ in range(K):
-        aug_views = aug_builder(views)
-        q_logits = model(aug_views)
+        aug_views, t_params = aug_builder(views)
+        with torch.no_grad():
+            q_logits = model(aug_views)
         q = q_logits.softmax(dim=-1)
 
         if divergence == 'js':
@@ -187,10 +267,54 @@ def compute_stability(
             raise ValueError(f"Unsupported divergence: {divergence}")
         divergences.append(d)
 
+        if use_spatial:
+            weak_spatial_map = model.get_spatial_relevance_map(aug_views, method=spat_method)
+            aligned_base_map = aug_builder.align_spatial_map(base_spatial_map, t_params)
+            crop_margin = 16
+            aligned_crop = aligned_base_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
+            weak_crop = weak_spatial_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
+            # Pearson correlation (zero-mean centering) removes positive DC offset
+            u = aligned_crop.flatten(1)
+            v = weak_crop.flatten(1)
+            u_c = u - u.mean(dim=1, keepdim=True)
+            v_c = v - v.mean(dim=1, keepdim=True)
+            sim = F.cosine_similarity(u_c, v_c, dim=1, eps=1e-8)
+            spatial_sims.append(sim)
+
     div = torch.stack(divergences, dim=0).mean(0)  # [B]
     stab_score = 1 / (div + 1e-8)  
 
-    return stab_score
+    if use_spatial:
+        spat_score = torch.stack(spatial_sims, dim=0).mean(0) # [B]
+    else:
+        spat_score = None
+
+    return stab_score, spat_score
+
+def compute_cross_view_spatial_consistency(attn):
+    spatial_centered = attn - attn.mean(dim=-1, keepdim=True)
+    spatial_norm = torch.nn.functional.normalize(spatial_centered, p=2, dim=-1)
+    S_spat = torch.mm(spatial_norm, spatial_norm.t()) # [B, B]
+    B = attn.size(0)
+    consensus = (S_spat.sum(dim=1) - 1.0) / (B - 1.0)
+    base_sim = S_spat[:, 0]
+    spat_score = 0.5 * consensus + 0.5 * base_sim
+    return spat_score
+
+def combine_scores(suit_score, stab_score, spat_score, args):
+    suit_n = (suit_score - suit_score.min()) / (suit_score.max() - suit_score.min() + 1e-8)
+    stab_n = (stab_score - stab_score.min()) / (stab_score.max() - stab_score.min() + 1e-8)
+    ss_base = args.ss_ratio * suit_n + (1.0 - args.ss_ratio) * stab_n
+    if getattr(args, 'spat_weight', 0.0) > 0.0 and spat_score is not None:
+        spat_n = (spat_score - spat_score.min()) / (spat_score.max() - spat_score.min() + 1e-8)
+        combine_mode = getattr(args, 'combine_mode', 'gated')
+        if combine_mode == 'linear':
+            score = (1.0 - args.spat_weight) * ss_base + args.spat_weight * spat_n
+        else:
+            score = ss_base * ((1.0 - args.spat_weight) + args.spat_weight * spat_n)
+    else:
+        score = ss_base
+    return score
 
 def entropy_avg(outputs):
     batch_entropy = -(outputs.softmax(1) * outputs.log_softmax(1)).sum(1)
@@ -242,8 +366,9 @@ def self_consistency_loss_with_rs_view(outputs, weight, ref_mode):
     
     return kl
 
-def test_time_tuning(model, inputs, suit_score, stab_score, optimizer, scaler, args, idx):
+def test_time_tuning(model, inputs, suit_score, stab_score, spat_score, optimizer, scaler, args, idx):
     selected_idx = None
+    score_all = combine_scores(suit_score, stab_score, spat_score, args)
 
     for j in range(args.tta_steps):
 
@@ -252,15 +377,20 @@ def test_time_tuning(model, inputs, suit_score, stab_score, optimizer, scaler, a
         if selected_idx is not None:
             output = output_all[selected_idx]
         else:
-            output, selected_idx = select_confident_views(output_all, args.num_select)
-            
-        sel_suit_score = suit_score[selected_idx]
-        sel_stab_score = stab_score[selected_idx]
-        
-        suit_n  = (sel_suit_score  - sel_suit_score.min())  / (sel_suit_score.max()  - sel_suit_score.min()  + 1e-8)
-        stab_n = (sel_stab_score - sel_stab_score.min()) / (sel_stab_score.max() - sel_stab_score.min() + 1e-8)
-        score = args.ss_ratio * suit_n + (1-args.ss_ratio) * stab_n
-        weight_cons = torch.nn.functional.softmax(score/args.temp, dim=-1)
+            if getattr(args, 'selection_mode', 'entropy') == 'pareto':
+                cand = torch.topk(score_all, 8, largest=True).indices
+                cand_ent = -(output_all[cand].softmax(1) * output_all[cand].log_softmax(1)).sum(1)
+                best_cand = torch.topk(cand_ent, args.num_select, largest=False).indices
+                selected_idx = cand[best_cand]
+                output = output_all[selected_idx]
+                weight_cons = torch.nn.functional.softmax(score_all[selected_idx]/args.temp, dim=-1)
+            elif getattr(args, 'selection_mode', 'entropy') == 'score':
+                selected_idx = score_all.topk(args.num_select, largest=True).indices
+                output = output_all[selected_idx]
+                weight_cons = torch.nn.functional.softmax(score_all[selected_idx]/args.temp, dim=-1)
+            else:
+                output, selected_idx = select_confident_views(output_all, args.num_select)
+                weight_cons = torch.nn.functional.softmax(score_all[selected_idx]/args.temp, dim=-1)
         
         ent_loss = entropy_avg(output)
         
@@ -296,8 +426,12 @@ def main():
             print(f"GPU {args.gpu} requested but CUDA is unavailable; running on CPU instead.")
 
     safe_arch = args.arch.replace('/', '_')
-    args.output_dir = os.path.join(args.output_dir, safe_arch, args.test_sets, 'eps_'+str(args.eps)+'_alpha_'+str(args.alpha)+'_step_'+str(args.steps)
-                                   +'_batchsize_'+str(args.batch_size))
+    out_name = 'eps_'+str(args.eps)+'_alpha_'+str(args.alpha)+'_step_'+str(args.steps)+'_batchsize_'+str(args.batch_size)
+    if getattr(args, 'spat_weight', 0.0) > 0.0:
+        out_name += '_spat_' + str(args.spat_weight) + '_' + str(args.spat_method)
+        if getattr(args, 'tiny_k', 1) > 1:
+            out_name += '_k' + str(args.tiny_k)
+    args.output_dir = os.path.join(args.output_dir, safe_arch, args.test_sets, out_name)
 
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -429,7 +563,7 @@ def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state,
         
     end = time.time()
 
-    tiny_aug = build_tiny_aug()
+    tiny_aug = TinyAugmenterWithTransform()
     
     with torch.no_grad():
         text_features = model.get_text_features()
@@ -437,6 +571,8 @@ def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state,
         logit_scale = model.logit_scale.exp()
     
     for i, (images, target) in enumerate(val_loader):
+        if getattr(args, 'max_samples', -1) > 0 and i >= args.max_samples:
+            break
         target = target.to(device, non_blocking=True)
 
         if args.eps > 0.0:
@@ -473,7 +609,18 @@ def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state,
             clip_features = model.image_encoder(model.normalize(images.type(model.dtype)))
             clip_features = clip_features / clip_features.norm(dim=-1, keepdim=True)
             clip_outputs = logit_scale * clip_features @ text_features.t()
-            
+
+        use_spatial = (getattr(args, 'spat_weight', 0.0) > 0.0)
+        spat_method = getattr(args, 'spat_method', 'attn')
+
+        stab_score, spat_score = compute_stability_and_spatial_consistency(
+            model, images, base_logits=clip_outputs,
+            aug_builder=tiny_aug,
+            K=getattr(args, 'tiny_k', 1),
+            use_spatial=use_spatial,
+            spat_method=spat_method
+        )
+
         suit_k = images.shape[0] - 1
         sim_matrix = torch.bmm(clip_features.unsqueeze(0), clip_features.unsqueeze(0).permute(0, 2, 1)) # [1, B, B]
         if args.suit_mode == "sim":
@@ -487,20 +634,15 @@ def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state,
             suit_score = suit_score.squeeze(0) # [B]
         else: 
             raise ValueError(f"Unsupported suit_mode: {args.suit_mode}")
-        
-        stab_score = compute_stability(
-            model, images, base_logits=clip_outputs,
-            aug_builder=tiny_aug
-        )
 
         assert args.tta_steps > 0
-        test_time_tuning(model, images, suit_score.detach(), stab_score.detach(), optimizer, scaler, args, i)
+        test_time_tuning(model, images, suit_score.detach(), stab_score.detach(),
+                         spat_score.detach() if spat_score is not None else None,
+                         optimizer, scaler, args, i)
         with torch.no_grad():
             tuned_outputs = model(images)
             
-        suit_n  = (suit_score  - suit_score.min())  / (suit_score.max()  - suit_score.min()  + 1e-8)
-        stab_n = (stab_score - stab_score.min()) / (stab_score.max() - stab_score.min() + 1e-8)
-        score = args.ss_ratio * suit_n + (1-args.ss_ratio) * stab_n
+        score = combine_scores(suit_score, stab_score, spat_score, args)
         weight_pred = torch.nn.functional.softmax(score/args.temp, dim=-1)
         tta_output = torch.bmm(weight_pred.unsqueeze(0).unsqueeze(-1).transpose(1, 2), tuned_outputs.unsqueeze(0)).squeeze(1)
 
@@ -564,4 +706,14 @@ if __name__ == '__main__':
                         help="method for computing suitability weights: 'sim' (cosine similarity) or 'density' (inverse mean kNN distance)")
     parser.add_argument('--ss_ratio', type=float, default=0.4,
                         help='weighting ratio to combine suitability and stability scores')
+    parser.add_argument('--tiny_k', type=int, default=1,
+                        help='number of weak augmentations for stability/spatial consistency (default: 1)')
+    parser.add_argument('--spat_weight', type=float, default=0.0,
+                        help='weighting ratio for spatial relevance consistency score (0.0 means original SS-TPT)')
+    parser.add_argument('--selection_mode', type=str, default='entropy', choices=['entropy', 'score', 'pareto'], help='view selection strategy: entropy or score')
+    parser.add_argument('--combine_mode', type=str, default='gated', choices=['gated', 'linear'], help='score combination method: gated (multiplicative gate) or linear (additive)')
+    parser.add_argument('--spat_method', type=str, default='attn', choices=['attn', 'gradcam', 'crossview'],
+                        help="method to extract spatial relevance map ('attn' or 'gradcam')")
+    parser.add_argument('--max_samples', type=int, default=-1,
+                        help='maximum number of test samples to evaluate (-1 for full dataset)')
     main()

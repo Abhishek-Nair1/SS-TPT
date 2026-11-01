@@ -366,6 +366,52 @@ class ClipTestTimeTuning(nn.Module):
         # logits = logit_scale * image_features @ text_features.t()
         return image_features, text_features, logit_scale
 
+    def get_gradcam_map(self, images, out_size=(224, 224)):
+        target_layer = getattr(self.image_encoder, 'layer4', None)
+        if target_layer is None:
+            return self.get_spatial_relevance_map(images, method='attn', out_size=out_size)
+            
+        activations = []
+        def hook_fn(module, inp, out):
+            activations.append(out)
+            
+        handle = target_layer.register_forward_hook(hook_fn)
+        norm_img = self.normalize(images.type(self.dtype)).requires_grad_(True)
+        image_feat = self.image_encoder(norm_img)
+        image_feat = image_feat / image_feat.norm(dim=-1, keepdim=True)
+        text_feat = self.get_text_features()
+        logit_scale = self.logit_scale.exp()
+        logits = logit_scale * image_feat @ text_feat.t()
+        
+        top_logits, _ = logits.max(dim=-1)
+        score = top_logits.sum()
+        
+        feat = activations[0]
+        grads = torch.autograd.grad(score, feat, retain_graph=False)[0]
+        handle.remove()
+        
+        weights = grads.mean(dim=(2, 3), keepdim=True)
+        cam = F.relu((weights * feat).sum(dim=1, keepdim=True))
+        cam = F.interpolate(cam, size=out_size, mode='bilinear', align_corners=False)
+        return cam
+
+    def get_spatial_relevance_map(self, images, method='attn', out_size=(224, 224)):
+        if method == 'gradcam':
+            return self.get_gradcam_map(images, out_size=out_size)
+            
+        if hasattr(self.image_encoder, 'attnpool'):
+            self.image_encoder.attnpool.return_attn = True
+            norm_img = self.normalize(images.type(self.dtype))
+            with torch.no_grad():
+                _ = self.image_encoder(norm_img)
+            self.image_encoder.attnpool.return_attn = False
+            attn = self.image_encoder.attnpool.last_attn # [B, 1, HW+1]
+            spatial_map = attn[:, 0, 1:].reshape(-1, 1, 7, 7)
+            spatial_map = F.interpolate(spatial_map.float(), size=out_size, mode='bilinear', align_corners=False)
+            return spatial_map
+        else:
+            return self.get_gradcam_map(images, out_size=out_size)
+
 def get_coop(clip_arch, classnames, device, n_ctx, ctx_init, learned_cls=False):
 
     model = ClipTestTimeTuning(device, classnames, None, arch=clip_arch,

@@ -69,7 +69,7 @@ class AttentionPool2d(nn.Module):
         x = x.flatten(start_dim=2).permute(2, 0, 1)  # NCHW -> (HW)NC
         x = torch.cat([x.mean(dim=0, keepdim=True), x], dim=0)  # (HW+1)NC
         x = x + self.positional_embedding[:, None, :].to(x.dtype)  # (HW+1)NC
-        x_out, _ = F.multi_head_attention_forward( 
+        x_out, attn_weights = F.multi_head_attention_forward( 
             query=x[:1], key=x, value=x,
             embed_dim_to_check=x.shape[-1],
             num_heads=self.num_heads,
@@ -86,12 +86,10 @@ class AttentionPool2d(nn.Module):
             out_proj_bias=self.c_proj.bias,
             use_separate_proj_weight=True,
             training=self.training,
-            need_weights=False
+            need_weights=getattr(self, 'return_attn', False)
         )
-        # if self.return_attn:
-        #     self.x_before = x.squeeze(0)
-        # else:
-        #     self.x_before = None
+        if getattr(self, 'return_attn', False):
+            self.last_attn = attn_weights
         return x_out.squeeze(0)
 
 
