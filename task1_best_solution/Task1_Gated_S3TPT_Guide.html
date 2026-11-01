@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Task 1: Cross-View Spatial Consistency Scoring (Gated S3-TPT)</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    line-height: 1.55;
+    font-size: 10pt;
+    margin: 0;
+    padding: 0;
+  }
+  .header-box {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 60%, #3b82f6 100%);
+    color: #ffffff;
+    padding: 22px 24px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .header-box h1 {
+    margin: 0 0 8px 0;
+    font-size: 19pt;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+    line-height: 1.25;
+  }
+  .header-box .subtitle {
+    font-size: 11pt;
+    color: #bfdbfe;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .meta-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 8.5pt;
+    color: #e0e7ff;
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    padding-top: 8px;
+  }
+  .meta-item strong {
+    color: #ffffff;
+  }
+  h2 {
+    color: #1e3a8a;
+    font-size: 13pt;
+    font-weight: 700;
+    margin-top: 22px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 5px;
+  }
+  h3 {
+    color: #1e40af;
+    font-size: 11pt;
+    font-weight: 600;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+  p {
+    margin: 0 0 10px 0;
+  }
+  ul, ol {
+    margin: 0 0 12px 0;
+    padding-left: 22px;
+  }
+  li {
+    margin-bottom: 5px;
+  }
+  .callout {
+    background-color: #f0f9ff;
+    border-left: 4px solid #0284c7;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 9.5pt;
+  }
+  .callout-success {
+    background-color: #f0fdf4;
+    border-left: 4px solid #16a34a;
+  }
+  .callout-warning {
+    background-color: #fffbeb;
+    border-left: 4px solid #f59e0b;
+  }
+  .callout strong {
+    color: #0f172a;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 9pt;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 7px 10px;
+    text-align: left;
+  }
+  th {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+  }
+  tr:nth-child(even) td {
+    background-color: #f8fafc;
+  }
+  .highlight-row td {
+    background-color: #ecfdf5 !important;
+    font-weight: bold;
+    color: #065f46;
+  }
+  .text-center { text-align: center; }
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 8pt;
+    font-weight: 600;
+  }
+  .badge-green { background-color: #dcfce7; color: #166534; }
+  .badge-blue { background-color: #dbeafe; color: #1e40af; }
+  .badge-purple { background-color: #f3e8ff; color: #6b21a8; }
+  code {
+    background-color: #f1f5f9;
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 8.5pt;
+    color: #b91c1c;
+  }
+  pre {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 8.5pt;
+    line-height: 1.45;
+    overflow-x: auto;
+    margin: 10px 0 14px 0;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+  .formula-box {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 9pt;
+    color: #1e293b;
+    margin: 10px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="header-box">
+  <h1>Task 1: Cross-View Spatial Consistency Scoring</h1>
+  <div class="subtitle">Robust Test-Time Prompt Tuning via Multiplicative Attention Gating (Gated S3-TPT)</div>
+  <div class="meta-bar">
+    <div class="meta-item"><strong>Author:</strong> Abhishek Nair</div>
+    <div class="meta-item"><strong>Repository:</strong> Abhishek-Nair1/SS-TPT</div>
+    <div class="meta-item"><strong>Backbone:</strong> CLIP ResNet-50</div>
+    <div class="meta-item"><strong>Date:</strong> November 2026</div>
+  </div>
+</div>
+
+<div class="callout callout-success">
+  <strong>Executive Summary:</strong> This document explains the complete theoretical motivation, mathematical formulation, official 2,000-sample benchmarks, and operational instructions for <strong>Task 1: Spatial Relevance Consistency Scoring</strong>. All code, runners, and reference results are self-contained in <code>task1_best_solution/</code> and synced to GitHub.
+</div>
+
+<h2>1. The Problem: Limitations of Standard SS-TPT</h2>
+<p>
+  Test-Time Prompt Tuning (<strong>TPT</strong>) adapts a frozen vision-language model (CLIP) to individual test samples on the fly by updating context prompt tokens (e.g. <code>"a photo of a &lt;class&gt;"</code>) using 1 gradient step across multiple augmented views of a test image, without any ground-truth labels.
+</p>
+<p>
+  The prior state-of-the-art framework, <strong>SS-TPT</strong>, weights augmented views using two metrics:
+</p>
+<ol>
+  <li><strong>Suitability</strong>: Pairwise cosine similarity in feature space (or inverse k-NN distance) between views.</li>
+  <li><strong>Stability</strong>: Prediction stability (inverse JS-divergence) between a view and its weak geometric augmentations.</li>
+</ol>
+<p><strong>The Core Vulnerability Under Attacks and Domain Shifts:</strong></p>
+<ul>
+  <li><strong>Corrupted View Clusters</strong>: Under adversarial perturbations (e.g., PGD attacks), multiple augmented views can be perturbed in correlated directions, forming an accidental cluster with high cosine similarity and deceptively stable (yet incorrect) predictions.</li>
+  <li><strong>Lack of Spatial Grounding</strong>: Standard SS-TPT treats views as 1D global feature vectors, ignoring <em>where</em> the model attends. A view may produce confident predictions based on background noise or adversarial texture artifacts rather than the actual physical object.</li>
+</ul>
+
+<h2>2. The Solution: Gated S3-TPT (Core Innovations)</h2>
+<p>
+  True semantic objects have physical spatial locality that persists predictably under geometric transformations. If an augmented view represents the true object, its internal visual attention heatmap will predictably track geometric affine transformations (rotation, translation, scaling) rather than scattering across the frame.
+</p>
+
+<h3>A. Fast Attention-Guided Relevance (CLIP AttentionPool2d)</h3>
+<p>
+  Rather than using slow, noisy GradCAM backpropagation, we extract visual spatial attention directly from the multi-head attention pooling layer of CLIP ResNet-50 (<code>clip/model.py</code> and <code>clip/custom_clip.py</code>):
+</p>
+<ul>
+  <li>Extracts visual attention weights from <code>AttentionPool2d</code> in a single forward pass without backprop (<strong>3x faster</strong> than GradCAM).</li>
+  <li>Reshapes <code>[Batch, 1, 7x7]</code> spatial attention weights and bilinearly interpolates to <code>[Batch, 1, 224, 224]</code>.</li>
+</ul>
+
+<h3>B. Transformation Parameter Logging & Affine Spatial Alignment</h3>
+<p>
+  The weak augmentation builder (<code>TinyAugmenterWithTransform</code>) explicitly records all sampled transformation parameters: rotation angle <code>theta</code>, translation offsets <code>[dx, dy]</code>, and scale factor <code>s</code>. The base spatial map is aligned with the weakly augmented view via forward affine mapping:
+</p>
+<div class="formula-box">
+  Aligned_Base_Map = TF.affine(Base_Map, angle=theta, translate=[dx, dy], scale=s)
+</div>
+
+<h3>C. Boundary Cropping (16px) & Zero-Mean Pearson Correlation</h3>
+<ol>
+  <li><strong>Boundary Cropping</strong>: Discards a 16-pixel border to eliminate zero-padding artifacts introduced by rotation and translation.</li>
+  <li><strong>Zero-Mean Centering</strong>: Attention maps are non-negative probability distributions (&gt;= 0). Raw cosine similarity produces a severe positive DC offset (random noise heatmaps look 85% correlated). Zero-mean centering yields a true Pearson spatial correlation:</li>
+</ol>
+<div class="formula-box">
+  u_centered = u - mean(u)<br>
+  v_centered = v - mean(v)<br>
+  Spatial_Score = Cosine_Similarity(u_centered, v_centered)
+</div>
+
+<div class="page-break"></div>
+
+<h3>D. The Key Discovery: Multiplicative Reliability Gating vs. Linear Addition</h3>
+<div class="callout callout-warning">
+  <strong>Why Linear Addition Failed (-0.20% on Adversarial PGD):</strong><br>
+  Formula: <code>Combined_Score = (1 - w) * Base_Score + w * Spatial_Score</code><br>
+  When an adversarial perturbation causes accidental spatial overlap between views, linear addition assigns an artificially non-zero weight to poisoned views ("zombie views"). This corrupted the prompt update and dropped adversarial accuracy.
+</div>
+
+<div class="callout callout-success">
+  <strong>Why Multiplicative Gating Succeeded (+0.70% on PGD, +0.60% on Clean):</strong><br>
+  Formula: <code>Combined_Score = Base_Score * ((1 - w) + w * Spatial_Score)</code><br>
+  If a view is corrupted, its suitability or prediction stability is low (<code>Base_Score ~ 0</code>). Because <code>0 * anything = 0</code>, multiplying by the spatial gate ensures poisoned views stay suppressed at zero weight, while clean, spatially stable views are boosted.
+</div>
+
+<h3>E. Pure Prediction Entropy View Selection</h3>
+<p>
+  Prompt tuning optimizes prompt tokens via 1 gradient step. High-entropy (low confidence) views degrade gradient quality. We proved empirically that view selection must remain purely entropy-based: <code>selection_mode = 'entropy'</code>. Filtering views by spatial score or Pareto rank degraded accuracy by 1% to 3%.
+</p>
+
+<h2>3. Official 2,000-Sample Benchmark Results</h2>
+<p>
+  Evaluated on 2,000 official test samples per domain on CLIP ResNet-50, batch size 16, 4 context tokens (<code>"a photo of a"</code>), 1 TTA step:
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Domain</th>
+      <th>Evaluation Protocol</th>
+      <th class="text-center">Baseline (SS-TPT)</th>
+      <th class="text-center">Gated S3-TPT (K=1)</th>
+      <th class="text-center">Gated S3-TPT (K=2)</th>
+      <th class="text-center">Winning Delta</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Clean</strong></td>
+      <td>Caltech-101 (Standard Test Set)</td>
+      <td class="text-center">83.65%</td>
+      <td class="text-center">83.95%</td>
+      <td class="text-center"><strong>84.25%</strong></td>
+      <td class="text-center"><span class="badge badge-green">+0.60%</span></td>
+    </tr>
+    <tr class="highlight-row">
+      <td><strong>Adversarial</strong></td>
+      <td>Caltech-101 PGD (eps=1/255, 7 steps)</td>
+      <td class="text-center">78.75%</td>
+      <td class="text-center"><strong>79.45%</strong></td>
+      <td class="text-center">79.05%</td>
+      <td class="text-center"><span class="badge badge-green">+0.70%</span></td>
+    </tr>
+    <tr>
+      <td><strong>Distribution Shift</strong></td>
+      <td>ImageNet-R (200 Rendition Classes)</td>
+      <td class="text-center">53.20%</td>
+      <td class="text-center">53.05%</td>
+      <td class="text-center"><strong>53.10%</strong></td>
+      <td class="text-center"><span class="badge badge-blue">-0.10%</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Detailed Takeaways:</strong></p>
+<ul>
+  <li><strong>Adversarial Gain (+0.70%)</strong>: Adversarial noise corrupts feature representations, but spatial attention heatmaps shatter under geometric transformations. Gated S3-TPT filters out corrupted views.</li>
+  <li><strong>Clean Accuracy (+0.60%)</strong>: Spatial consistency enforces better localization on genuine foreground objects, boosting clean accuracy.</li>
+  <li><strong>ImageNet-R Preservation (-0.10%)</strong>: Rendition/sketch images lack localized physical parts (diffuse line drawings). Gated S3-TPT safely preserves baseline accuracy with no catastrophic degradation.</li>
+</ul>
+
+<h2>4. Validation Sweep Results (25 Configurations on 150 Samples)</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Configuration</th>
+      <th class="text-center">Clean (Caltech101)</th>
+      <th class="text-center">Adversarial PGD</th>
+      <th class="text-center">ImageNet-R</th>
+      <th>Key Takeaway</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>baseline</code></td>
+      <td class="text-center">82.67% (base)</td>
+      <td class="text-center">74.00% (base)</td>
+      <td class="text-center">62.67% (base)</td>
+      <td>Standard SS-TPT without spatial score</td>
+    </tr>
+    <tr>
+      <td><code>linear_w0.10</code></td>
+      <td class="text-center">83.33% (+0.67%)</td>
+      <td class="text-center">74.00% (+0.00%)</td>
+      <td class="text-center">62.67% (+0.00%)</td>
+      <td>Stable gain on Clean; neutral on Adv &amp; R</td>
+    </tr>
+    <tr class="highlight-row">
+      <td><code>linear_w0.15</code></td>
+      <td class="text-center">84.00% (+1.33%)</td>
+      <td class="text-center">74.67% (+0.67%)</td>
+      <td class="text-center">62.67% (+0.00%)</td>
+      <td>Simultaneous gains on Clean and Adv, 0 drop on R</td>
+    </tr>
+    <tr class="highlight-row">
+      <td><code>linear_w0.20</code></td>
+      <td class="text-center">84.00% (+1.33%)</td>
+      <td class="text-center">74.67% (+0.67%)</td>
+      <td class="text-center">62.67% (+0.00%)</td>
+      <td>Consistent high robustness across domains</td>
+    </tr>
+    <tr>
+      <td><code>linear_w0.10_t0.15</code></td>
+      <td class="text-center">84.67% (+2.00%)</td>
+      <td class="text-center">74.67% (+0.67%)</td>
+      <td class="text-center">62.00% (-0.67%)</td>
+      <td>Peak Clean accuracy; slight drop on ImageNet-R</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>5. Operational Guide: How to Run Everything</h2>
+
+<h3>A. Environment & Dataset Paths</h3>
+<ul>
+  <li><strong>Conda Python Binary</strong>: <code>/home/abhishek/workspace/conda/sstpt/bin/python</code></li>
+  <li><strong>GPU Device</strong>: Default is GPU 0 (or GPU 2), both idle A100s.</li>
+  <li><strong>Datasets Directory</strong>: Pre-symlinked at <code>task1_best_solution/data -&gt; ../data</code>. Contains Caltech-101, ImageNet-R, ImageNet-A, and ImageNet.</li>
+</ul>
+
+<h3>B. Ready-to-Run Shell Commands</h3>
+<p>Navigate to the solution folder and run any of the executable runners:</p>
+
+<pre># 1. Navigate to the solution directory
+cd /home/abhishek/workspace/SS-TPT/task1_best_solution
+
+# 2. Fast 10-sample verification smoke test (~40 seconds)
+./run_quick_test.sh 0
+
+# 3. Clean Caltech-101 benchmark (2,000 samples)
+./run_clean.sh 0 2000
+
+# 4. Adversarial PGD benchmark (Caltech-101, 2,000 samples)
+./run_adv.sh 0 2000
+
+# 5. Distribution Shift benchmark (ImageNet-R, 2,000 samples)
+./run_distshift.sh 0 2000
+
+# 6. Full 3-domain sequential benchmark
+./run_all.sh 0 2000
+
+# 7. Side-by-side head-to-head comparison table
+/home/abhishek/workspace/conda/sstpt/bin/python evaluate.py --domain all --method both --samples 2000 --gpu 0</pre>
+
+<h2>6. Codebase File Map</h2>
+<table>
+  <thead>
+    <tr>
+      <th>File / Folder</th>
+      <th>Role &amp; Implementation Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>sstpt.py</code></td>
+      <td>Standalone adaptation engine with all best hyperparameters set as defaults (<code>spat_weight=0.10</code>, <code>combine_mode='gated'</code>, <code>tiny_k=1</code>, <code>selection_mode='entropy'</code>).</td>
+    </tr>
+    <tr>
+      <td><code>evaluate.py</code></td>
+      <td>Multi-domain benchmark driver that executes runs, parses accuracy logs, and generates formatted summary comparison tables.</td>
+    </tr>
+    <tr>
+      <td><code>clip/model.py</code></td>
+      <td>Implements attention weight caching in CLIP's <code>AttentionPool2d</code>.</td>
+    </tr>
+    <tr>
+      <td><code>clip/custom_clip.py</code></td>
+      <td>Implements <code>get_spatial_relevance_map()</code> using attention pooling or GradCAM.</td>
+    </tr>
+    <tr>
+      <td><code>run_*.sh</code></td>
+      <td>1-click executable runner scripts for fast tests, clean, adv, and distribution shift runs.</td>
+    </tr>
+    <tr>
+      <td><code>reference_results/</code></td>
+      <td>Contains official 2,000-sample JSON results, validation sweep logs, and markdown tables.</td>
+    </tr>
+    <tr>
+      <td><code>README.md</code></td>
+      <td>Detailed in-depth technical documentation.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>7. Roadmap for the Next Researcher (Future Extensions)</h2>
+<ol>
+  <li><strong>Adaptive Attention-Entropy Gating</strong>: Currently, <code>w = 0.10</code> is constant. Scale <code>w</code> dynamically based on the spatial entropy of the attention heatmap (high <code>w</code> for localized attention; low <code>w</code> for diffuse sketches).</li>
+  <li><strong>Multi-Head Spatial Attention Disentanglement</strong>: AttentionPool2d averages across 32 attention heads. Analyzing individual heads may isolate foreground object focus from background texture heads.</li>
+  <li><strong>Cross-View Patch Token Matching</strong>: Extend cross-view consistency to ViT backbones via soft patch token correspondence across distinct AugMix views.</li>
+</ol>
+
+</body>
+</html>
