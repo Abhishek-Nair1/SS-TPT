@@ -1,0 +1,200 @@
+[
+  {
+    "domain": "Clean",
+    "dataset": "Clean (Caltech101)",
+    "method": "Original SS-TPT (2-Score Baseline)",
+    "spat_weight": 0.0,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 83.6500015258789,
+    "eval_time_sec": 300.92
+  },
+  {
+    "domain": "Clean",
+    "dataset": "Clean (Caltech101)",
+    "method": "Proposed S3-TPT (Score-Guided Spatial)",
+    "spat_weight": 0.2,
+    "selection_mode": "score",
+    "spat_method": "gradcam",
+    "tiny_k": 1,
+    "accuracy": 82.60000610351562,
+    "eval_time_sec": 457.95
+  },
+  {
+    "domain": "Clean",
+    "dataset": "Clean (Caltech101)",
+    "method": "Improved S3-TPT (Attention-Guided Spatial)",
+    "spat_weight": 0.2,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 84.1,
+    "eval_time_sec": 336.61
+  },
+  {
+    "domain": "Clean",
+    "dataset": "Clean (Caltech101)",
+    "method": "Gated S3-TPT (Attention, K=1, w=0.10)",
+    "spat_weight": 0.1,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 83.95000457763672,
+    "eval_time_sec": 419.84
+  },
+  {
+    "domain": "Clean",
+    "dataset": "Clean (Caltech101)",
+    "method": "Gated S3-TPT (Attention, K=2, w=0.10)",
+    "spat_weight": 0.1,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 2,
+    "accuracy": 84.25000762939453,
+    "eval_time_sec": 651.77
+  },
+  {
+    "domain": "Clean",
+    "dataset": "Clean (Caltech101)",
+    "method": "Proposed Task-1 S3-TPT (Aligned Pearson Spatial + Pareto)",
+    "spat_weight": 0.15,
+    "selection_mode": "pareto",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 83.5,
+    "eval_time_sec": 535.65
+  },
+  {
+    "domain": "Adversarial",
+    "dataset": "Adversarial PGD (Caltech101)",
+    "method": "Original SS-TPT (2-Score Baseline)",
+    "spat_weight": 0.0,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 78.75,
+    "eval_time_sec": 1239.84
+  },
+  {
+    "domain": "Adversarial",
+    "dataset": "Adversarial PGD (Caltech101)",
+    "method": "Proposed S3-TPT (Score-Guided Spatial)",
+    "spat_weight": 0.2,
+    "selection_mode": "score",
+    "spat_method": "gradcam",
+    "tiny_k": 1,
+    "accuracy": 75.75,
+    "eval_time_sec": 1618.04
+  },
+  {
+    "domain": "Adversarial",
+    "dataset": "Adversarial PGD (Caltech101)",
+    "method": "Improved S3-TPT (Attention-Guided Spatial)",
+    "spat_weight": 0.2,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 78.55,
+    "eval_time_sec": 1278.16
+  },
+  {
+    "domain": "Adversarial",
+    "dataset": "Adversarial PGD (Caltech101)",
+    "method": "Gated S3-TPT (Attention, K=1, w=0.10)",
+    "spat_weight": 0.1,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 79.45000457763672,
+    "eval_time_sec": 1714.83
+  },
+  {
+    "domain": "Adversarial",
+    "dataset": "Adversarial PGD (Caltech101)",
+    "method": "Gated S3-TPT (Attention, K=2, w=0.10)",
+    "spat_weight": 0.1,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 2,
+    "accuracy": 79.05000305175781,
+    "eval_time_sec": 1792.42
+  },
+  {
+    "domain": "Adversarial",
+    "dataset": "Adversarial PGD (Caltech101)",
+    "method": "Proposed Task-1 S3-TPT (Aligned Pearson Spatial + Pareto)",
+    "spat_weight": 0.15,
+    "selection_mode": "pareto",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 76.75,
+    "eval_time_sec": 1953.7
+  },
+  {
+    "domain": "Distribution-Shift",
+    "dataset": "Distribution-Shifted (ImageNet-R)",
+    "method": "Original SS-TPT (2-Score Baseline)",
+    "spat_weight": 0.0,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 53.20000076293945,
+    "eval_time_sec": 506.05
+  },
+  {
+    "domain": "Distribution-Shift",
+    "dataset": "Distribution-Shifted (ImageNet-R)",
+    "method": "Proposed S3-TPT (Score-Guided Spatial)",
+    "spat_weight": 0.2,
+    "selection_mode": "score",
+    "spat_method": "gradcam",
+    "tiny_k": 1,
+    "accuracy": 50.750003814697266,
+    "eval_time_sec": 1123.82
+  },
+  {
+    "domain": "Distribution-Shift",
+    "dataset": "Distribution-Shifted (ImageNet-R)",
+    "method": "Improved S3-TPT (Attention-Guided Spatial)",
+    "spat_weight": 0.2,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 53.0,
+    "eval_time_sec": 520.24
+  },
+  {
+    "domain": "Distribution-Shift",
+    "dataset": "Distribution-Shifted (ImageNet-R)",
+    "method": "Gated S3-TPT (Attention, K=1, w=0.10)",
+    "spat_weight": 0.1,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 53.05000305175781,
+    "eval_time_sec": 1380.26
+  },
+  {
+    "domain": "Distribution-Shift",
+    "dataset": "Distribution-Shifted (ImageNet-R)",
+    "method": "Gated S3-TPT (Attention, K=2, w=0.10)",
+    "spat_weight": 0.1,
+    "selection_mode": "entropy",
+    "spat_method": "attn",
+    "tiny_k": 2,
+    "accuracy": 53.10000228881836,
+    "eval_time_sec": 1524.06
+  },
+  {
+    "domain": "Distribution-Shift",
+    "dataset": "Distribution-Shifted (ImageNet-R)",
+    "method": "Proposed Task-1 S3-TPT (Aligned Pearson Spatial + Pareto)",
+    "spat_weight": 0.15,
+    "selection_mode": "pareto",
+    "spat_method": "attn",
+    "tiny_k": 1,
+    "accuracy": 51.6,
+    "eval_time_sec": 1703.51
+  }
+]

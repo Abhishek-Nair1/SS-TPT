@@ -1,0 +1,152 @@
+{
+  "baseline": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.03": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.05": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.08": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.10": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.12": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.15": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.20": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "exp_w0.03": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "exp_w0.05": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "exp_w0.08": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "exp_w0.10": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "exp_w0.12": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "exp_w0.15": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "exp_w0.20": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "sigmoid_w0.03": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "sigmoid_w0.05": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "sigmoid_w0.08": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "sigmoid_w0.10": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "sigmoid_w0.12": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "sigmoid_w0.15": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "sigmoid_w0.20": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  },
+  "linear_w0.10_t0.15": {
+    "acc": 62.0,
+    "diff": -0.6666666666666714,
+    "correct": 93,
+    "total": 150
+  },
+  "linear_w0.10_t0.20": {
+    "acc": 62.0,
+    "diff": -0.6666666666666714,
+    "correct": 93,
+    "total": 150
+  },
+  "linear_w0.10_t0.30": {
+    "acc": 62.66666666666667,
+    "diff": 0.0,
+    "correct": 94,
+    "total": 150
+  }
+}
