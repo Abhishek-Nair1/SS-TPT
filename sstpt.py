@@ -270,15 +270,8 @@ def compute_stability_and_spatial_consistency(
         if use_spatial:
             weak_spatial_map = model.get_spatial_relevance_map(aug_views, method=spat_method)
             aligned_base_map = aug_builder.align_spatial_map(base_spatial_map, t_params)
-            crop_margin = 16
-            aligned_crop = aligned_base_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
-            weak_crop = weak_spatial_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
-            # Pearson correlation (zero-mean centering) removes positive DC offset
-            u = aligned_crop.flatten(1)
-            v = weak_crop.flatten(1)
-            u_c = u - u.mean(dim=1, keepdim=True)
-            v_c = v - v.mean(dim=1, keepdim=True)
-            sim = F.cosine_similarity(u_c, v_c, dim=1, eps=1e-8)
+            # Direct spatial cosine similarity on aligned attention maps
+            sim = F.cosine_similarity(aligned_base_map.flatten(1), weak_spatial_map.flatten(1), dim=1, eps=1e-8)
             spatial_sims.append(sim)
 
     div = torch.stack(divergences, dim=0).mean(0)  # [B]
@@ -291,15 +284,6 @@ def compute_stability_and_spatial_consistency(
 
     return stab_score, spat_score
 
-def compute_cross_view_spatial_consistency(attn):
-    spatial_centered = attn - attn.mean(dim=-1, keepdim=True)
-    spatial_norm = torch.nn.functional.normalize(spatial_centered, p=2, dim=-1)
-    S_spat = torch.mm(spatial_norm, spatial_norm.t()) # [B, B]
-    B = attn.size(0)
-    consensus = (S_spat.sum(dim=1) - 1.0) / (B - 1.0)
-    base_sim = S_spat[:, 0]
-    spat_score = 0.5 * consensus + 0.5 * base_sim
-    return spat_score
 
 def combine_scores(suit_score, stab_score, spat_score, args):
     suit_n = (suit_score - suit_score.min()) / (suit_score.max() - suit_score.min() + 1e-8)
