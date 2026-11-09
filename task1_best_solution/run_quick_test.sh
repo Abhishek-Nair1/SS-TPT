@@ -7,7 +7,15 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "${SCRIPT_DIR}"
 
-PYTHON_BIN="/home/abhishek/workspace/conda/sstpt/bin/python"
+if [ -n "${CONDA_PREFIX}" ] && [ -x "${CONDA_PREFIX}/bin/python" ]; then
+    PYTHON_BIN="${CONDA_PREFIX}/bin/python"
+elif [ -x "/home/dse_413/envs/ss-tpt/bin/python" ]; then
+    PYTHON_BIN="/home/dse_413/envs/ss-tpt/bin/python"
+elif [ -x "/home/abhishek/workspace/conda/sstpt/bin/python" ]; then
+    PYTHON_BIN="/home/abhishek/workspace/conda/sstpt/bin/python"
+else
+    PYTHON_BIN="$(which python3 || which python)"
+fi
 GPU_ID=${1:-0}
 
 echo "======================================================================"

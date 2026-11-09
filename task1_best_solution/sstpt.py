@@ -667,7 +667,20 @@ def test_time_adapt_eval(val_loader, model, model_state, optimizer, optim_state,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test-time Prompt Tuning')
-    DEFAULT_DATA_DIR = str(CURRENT_DIR / 'data') if (CURRENT_DIR / 'data').exists() else '/home/abhishek/workspace/SS-TPT/data'
+    # Auto-detect default data directory across environments
+    DEFAULT_DATA_DIR = str(CURRENT_DIR / 'data')
+    for candidate in [
+        CURRENT_DIR / 'data',
+        PARENT_DIR / 'data',
+        PARENT_DIR.parent / 'data',
+        Path('/home/dse_413/ADL/data'),
+        Path('/home/dse_413/ADL/Final_Project_Folder/data'),
+        Path.home() / 'workspace/data',
+        Path.home() / 'workspace/SS-TPT/data',
+    ]:
+        if candidate.exists():
+            DEFAULT_DATA_DIR = str(candidate)
+            break
     parser.add_argument('data', metavar='DIR', nargs='?', default=DEFAULT_DATA_DIR, help=f'path to dataset root (default: {DEFAULT_DATA_DIR})')
     parser.add_argument('--test_sets', type=str, default='Caltech101')
     parser.add_argument('--dataset_mode', type=str, default='test')

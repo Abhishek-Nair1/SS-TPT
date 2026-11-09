@@ -37,8 +37,34 @@ from pathlib import Path
 # Self-contained paths
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
-DATA_DIR = SCRIPT_DIR / "data" if (SCRIPT_DIR / "data").exists() else REPO_ROOT / "data"
-PYTHON_BIN = "/home/abhishek/workspace/conda/sstpt/bin/python"
+
+# Auto-detect data directory across workstations
+DATA_DIR = None
+for candidate in [
+    SCRIPT_DIR / "data",
+    REPO_ROOT / "data",
+    REPO_ROOT.parent / "data",
+    Path("/home/dse_413/ADL/data"),
+    Path("/home/dse_413/ADL/Final_Project_Folder/data"),
+    Path.home() / "workspace/data",
+    Path.home() / "data",
+]:
+    if candidate.exists():
+        DATA_DIR = candidate
+        break
+if DATA_DIR is None:
+    DATA_DIR = SCRIPT_DIR / "data"
+
+# Auto-detect python binary across workstations
+PYTHON_BIN = sys.executable
+if not PYTHON_BIN or not Path(PYTHON_BIN).exists():
+    for candidate in [
+        Path("/home/dse_413/envs/ss-tpt/bin/python"),
+        Path("/home/abhishek/workspace/conda/sstpt/bin/python"),
+    ]:
+        if candidate.exists():
+            PYTHON_BIN = str(candidate)
+            break
 
 DOMAINS = {
     "clean": {
