@@ -2,7 +2,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org/)
-[![Tests Passing](https://img.shields.io/badge/Unit%20Tests-51%20Passed-brightgreen.svg)]()
+[![Tests Passing](https://img.shields.io/badge/Unit%20Tests-29%20Passed-brightgreen.svg)]()
 [![License MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.txt)
 
 > **Advanced Deep Learning — Final Project & Comprehensive Study Guide**  
@@ -65,27 +65,34 @@ conda activate sstpt
 pip install -r requirements.txt
 ```
 
-### 2. Run All Unit & Integration Tests (51 Tests, < 1 Second)
+### 2. Run All Unit & Integration Tests (29 Tests, < 0.1 Seconds)
 
-All components (Task 1 spatial correlation, Task 2 adaptive alpha, boundary cropping, score gating, and combination matrices) are covered by rigorous unit tests:
+All components (Task 1 spatial correlation, Task 2 adaptive alpha, boundary cropping, score gating, and combination matrices) are covered by unit and integration tests:
 
 ```bash
-# Run Task 1, Task 2 & Integration Unit Tests (29 tests)
 python -m unittest discover -s utils -p "test_*.py"
-
-# Run Empirical Benchmark & Ablation Matrix Tests (22 tests)
-python -m unittest discover -s tests_ablations -p "test_*.py"
 ```
 
 ### 3. Run Live 10-Second GPU Demonstration (5 Samples)
 
-For quick demonstration or viva evaluation without waiting for full benchmark sweeps:
+For fast verification or viva evaluation without waiting for full benchmark sweeps:
 
 ```bash
-./quick_demo.sh datasets 0 5
+./quick_demo.sh data 0 5
 ```
 
-### 4. Reproduce Statistical Analysis Tables & Publication Figures
+### 4. Reproduce the Master Benchmark (or any Method / Regime)
+
+```bash
+# Run all 4 methods across all 3 regimes (2000 samples each):
+./run_experiments.sh all all 2000 0
+
+# Or run an individual method / regime:
+./run_experiments.sh combined adv 2000 0    # Combined on Adversarial PGD
+./run_experiments.sh spatial clean 2000 0   # Spatial on Clean Caltech-101
+```
+
+### 5. Reproduce Statistical Analysis Tables & Publication Figures
 
 ```bash
 # Print Master 4-Row Markdown & LaTeX tables with Wilson Confidence Intervals:
@@ -101,9 +108,9 @@ python analysis/generate_plots.py
 
 | Person | Ownership | Implemented Modules | Repository Locations |
 | :--- | :--- | :--- | :--- |
-| **Person 1** | **Task 1: Spatial Consistency** | Visual attention extraction hook (`AttentionPool2d`), affine parameter tracking (`TinyAugmenterWithTransform`), boundary cropping, Pearson spatial correlation, multiplicative reliability gate. | [`tasks/task1_spatial_consistency/`](tasks/task1_spatial_consistency/), [`utils/spatial_metrics.py`](utils/spatial_metrics.py), [`Task1_Gated_S3TPT_Guide.pdf`](Task1_Gated_S3TPT_Guide.pdf) |
-| **Person 2** | **Task 2: Adaptive $\alpha(x)$** | Instance-level view score distribution modeling (`variance`, `margin`, `entropy`, `agreement`), temperature-scaled dynamic trade-off $\alpha(x)$, ablation voting ensembles. | [`tasks/task2_adaptive_alpha/`](tasks/task2_adaptive_alpha/), [`utils/instance_alpha.py`](utils/instance_alpha.py), [`Task2_Instance_Adaptive_Alpha.pptx`](Task2_Instance_Adaptive_Alpha.pptx) |
-| **Person 3** | **Baseline, Master Integration & Benchmarks** | Unified execution engine (`sstpt.py`), modular runners (`experiments/`), official 2,000-sample CSV logging (`results/`), statistical hypothesis tests (`analysis/`), master 4-row benchmark table. | [`sstpt.py`](sstpt.py), [`experiments/`](experiments/), [`results/`](results/), [`analysis/`](analysis/), [`tests_ablations/`](tests_ablations/) |
+| **Person 1** | **Task 1: Spatial Consistency** | Visual attention extraction hook (`AttentionPool2d`), affine parameter tracking (`TinyAugmenterWithTransform`), boundary cropping, Pearson spatial correlation, multiplicative reliability gate. | [`utils/spatial_metrics.py`](utils/spatial_metrics.py), [`docs/Task1_Gated_S3TPT_Guide.pdf`](docs/Task1_Gated_S3TPT_Guide.pdf) |
+| **Person 2** | **Task 2: Adaptive $\alpha(x)$** | Instance-level view score distribution modeling (`variance`, `margin`, `entropy`, `agreement`), temperature-scaled dynamic trade-off $\alpha(x)$. | [`utils/instance_alpha.py`](utils/instance_alpha.py), [`docs/Task2_Adaptive_Alpha.pptx`](docs/Task2_Adaptive_Alpha.pptx) |
+| **Person 3** | **Baseline, Master Integration & Benchmarks** | Unified execution engine (`sstpt.py`), unified experiment runner (`run_experiments.sh`), official 2,000-sample CSV logging (`results/`), statistical hypothesis tests (`analysis/`), master 4-row benchmark table. | [`sstpt.py`](sstpt.py), [`run_experiments.sh`](run_experiments.sh), [`results/`](results/), [`analysis/`](analysis/) |
 
 ---
 
@@ -221,7 +228,7 @@ This composite score guides:
 
 ## 📊 Master 4-Row Benchmark Results
 
-The following table reflects the rigorous evaluation across **2,000 official test samples** per domain using **CLIP ResNet-50 (`RN50`)**, batch size 16, 4 context tokens (`"a photo of a"`), and 1 TTA step:
+The following table reflects the evaluation across **2,000 official test samples** per domain using **CLIP ResNet-50 (`RN50`)**, batch size 16, 4 context tokens (`"a photo of a"`), and 1 TTA step:
 
 | Method | Clean (Caltech-101) | Adversarial PGD ($\epsilon=1/255$, 7 steps) | Distribution Shift (ImageNet-R) | Key Architectural Role |
 | :--- | :---: | :---: | :---: | :--- |
@@ -243,34 +250,16 @@ The following table reflects the rigorous evaluation across **2,000 official tes
 ```
 SS-TPT/
 ├── sstpt.py                             # Unified execution script for all 4 methods
-├── quick_demo.sh                        # Fast 10-second GPU demo
-├── run_all_experiments.sh               # Runs complete 4-method benchmark suite
-├── run_parallel_benchmark.py            # Multi-GPU load-balanced runner
+├── run_experiments.sh                   # Master execution runner (all methods & regimes)
+├── quick_demo.sh                        # Fast 10-second GPU demo (5 samples)
 │
 ├── utils/
 │   ├── spatial_metrics.py               # Task 1: Attention tracking, Pearson corr, gating
 │   ├── instance_alpha.py                # Task 2: Variance, margin, entropy alpha(x) modes
 │   ├── tools.py                         # Logging, meters, accuracy, checkpoint utils
-│   ├── test_spatial_metrics.py          # Unit tests for spatial consistency
-│   ├── test_instance_alpha.py           # Unit tests for adaptive alpha
+│   ├── test_spatial_metrics.py          # Unit tests for Task 1
+│   ├── test_instance_alpha.py           # Unit tests for Task 2
 │   └── test_integration.py              # End-to-end integration tests
-│
-├── tasks/
-│   ├── task1_spatial_consistency/       # Standalone Task 1 code, PDF guide, results
-│   │   ├── Task1_Gated_S3TPT_Guide.pdf  # Comprehensive mathematical derivation guide
-│   │   ├── evaluate.py                  # Task 1 evaluation driver
-│   │   └── explorations/                # Parameter sweeps and ablation logs
-│   └── task2_adaptive_alpha/            # Standalone Task 2 code, pilot tests, and voting
-│       ├── instance_alpha.py            # Core Task 2 implementation
-│       ├── alpha_pilot.py               # Pilot sweeps over alpha modes
-│       └── alpha_vote.py                # Voting ensemble ablation
-│
-├── experiments/                         # Modular shell runner scripts
-│   ├── baseline/                        # run_clean.sh, run_adversarial.sh, run_shift.sh
-│   ├── spatial/                         # Task 1 shell runners
-│   ├── adaptive_alpha/                  # Task 2 shell runners
-│   ├── combined/                        # Combined method shell runners
-│   └── run_benchmarks.py                # Python benchmark orchestrator
 │
 ├── results/                             # Real recorded 2,000-sample benchmark CSVs
 │   ├── clean.csv                        # Caltech-101 Clean evaluation records
@@ -279,15 +268,18 @@ SS-TPT/
 │
 ├── analysis/                            # Statistical evaluation & figures
 │   ├── statistical_analysis.py          # Generates Markdown and LaTeX summary tables
-│   ├── generate_plots.py                # Generates PNG comparison curves
-│   └── figures/                         # High-res publication plots & Pareto frontiers
+│   ├── generate_plots.py                # Generates publication-ready figures
+│   ├── data_and_models.py               # Dynamic benchmark data loader
+│   ├── benchmark_summary.md             # Markdown summary table
+│   └── figures/                         # High-res publication plots (PNGs)
 │
-├── tests_ablations/                     # Unit test suites & ablations
-│   ├── test_empirical_benchmarks.py     # Verifies consistency of benchmark records
-│   ├── test_combinations_matrix.py      # Factorial test matrix over all combinations
-│   └── plot_all_paper_and_project_figures.py
+├── docs/                                # Clean academic guides and presentations
+│   ├── Task1_Gated_S3TPT_Guide.pdf      # Detailed mathematical guide for Task 1
+│   ├── SS-TPT_Presentation.pptx         # Main presentation slide deck
+│   └── Task2_Adaptive_Alpha.pptx        # Task 2 presentation slide deck
 │
 ├── clip/                                # CLIP architecture + AttentionPool2d hook
+├── data/                                # Dataset loaders, augmix, and prompts
 ├── torchattacks/                        # PGD, FGSM, AutoAttack library
 └── requirements.txt                     # Pinned Python package dependencies
 ```
@@ -346,13 +338,13 @@ When presenting or explaining this project to professors, examiners, or peer res
 
 ## 📑 Included Presentation Decks & PDF Guides
 
-The repository includes ready-to-present documentation and slide decks:
+The repository includes ready-to-present documentation and slide decks in [`docs/`](docs/):
 
-1. **[`SS-TPT Stability and Suitability-Guided Test-Time Prompt Tuning Models.pptx`](SS-TPT%20Stability%20and%20Suitability-Guided%20Test-Time%20Prompt%20Tuning%20Models.pptx)**  
+1. **[`docs/SS-TPT_Presentation.pptx`](docs/SS-TPT_Presentation.pptx)**  
    *Comprehensive presentation deck covering the full SS-TPT framework, baseline analysis, Task 1, Task 2, and the master benchmark comparison.*
-2. **[`Task2_Instance_Adaptive_Alpha.pptx`](Task2_Instance_Adaptive_Alpha.pptx)**  
+2. **[`docs/Task2_Adaptive_Alpha.pptx`](docs/Task2_Adaptive_Alpha.pptx)**  
    *Dedicated slide deck focusing on Task 2: dynamic instance-level $\alpha(x)$ modeling, variance-based formulation, and ablation experiments.*
-3. **[`Task1_Gated_S3TPT_Guide.pdf`](Task1_Gated_S3TPT_Guide.pdf)**  
+3. **[`docs/Task1_Gated_S3TPT_Guide.pdf`](docs/Task1_Gated_S3TPT_Guide.pdf)**  
    *Complete academic PDF document deriving Task 1 spatial attention pooling, affine normalization, and Pearson correlation.*
 
 ---
