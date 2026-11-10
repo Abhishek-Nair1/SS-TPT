@@ -1,0 +1,5 @@
+timestamp,method,dataset,epsilon,attack_steps,seed,accuracy,runtime,alpha_mode,spat_weight,combine_mode,samples
+2026-11-10T08:29:35,SS-TPT baseline,Caltech101,0.0,0,0,83.65,299.38,fixed,0.0,gated,2000
+2026-11-10T08:37:55,SS-TPT + Spatial,Caltech101,0.0,0,0,83.95,800.84,fixed,0.1,gated,2000
+2026-11-10T08:48:35,SS-TPT + Adaptive α(x),Caltech101,0.0,0,0,83.8,631.48,variance,0.0,gated,2000
+2026-11-10T08:58:21,SS-TPT + Spatial + Adaptive α(x),Caltech101,0.0,0,0,83.8,577.53,variance,0.1,gated,2000

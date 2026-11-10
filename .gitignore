@@ -23,9 +23,29 @@ data/sun*/
 data/fgvc*/
 data/eurosat*/
 demo_data/
+datasets/
+
+# Logs and scratch backups
+*.log
+*.bak
+*.bak*
+utils.bak/
+results_backup*/
 
 # Experiment outputs and checkpoints
 output_results/
+output_test/
+task1_best_solution/output_test/
+tasks/*/results/ckps/
+tasks/*/results/ckp*/
+
+# Intermediate raw sweeps
+task1_exp_*.json
+val_results_*.json
+paper_loo_results_*.json
+gated_weight_sweep_*.json
+factorial_ablation_*.json
+verify_pearson_crop_*.json
 
 # Virtual environments
 .venv/

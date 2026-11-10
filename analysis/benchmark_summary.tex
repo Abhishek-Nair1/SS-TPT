@@ -1,0 +1,15 @@
+\begin{table}[ht]
+\centering
+\caption{Four Principal Methods Across Clean, Adversarial, and Distribution Shift Regimes (CLIP ResNet-50, 2000 samples).}
+\label{tab:four_methods}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Clean (Caltech101)} & \textbf{Adversarial (PGD)} & \textbf{Distribution Shift (ImageNet-R)} \\
+\midrule
+SS-TPT baseline & 83.65\% & 78.15\% & 53.20\% \\
+SS-TPT + Spatial & 83.95\% & 78.70\% & 53.10\% \\
+SS-TPT + Adaptive α(x) & 83.80\% & 78.40\% & 53.15\% \\
+SS-TPT + Spatial + Adaptive α(x) & 83.80\% & 77.95\% & 53.05\% \\
+\bottomrule
+\end{tabular}
+\end{table}
