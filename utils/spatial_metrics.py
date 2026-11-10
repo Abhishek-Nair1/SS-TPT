@@ -21,18 +21,6 @@ except ImportError:
     BILINEAR = 2  # PIL bilinear interpolation fallback
 
 
-class AddGaussianNoise(nn.Module):
-    def __init__(self, sigma_min=0.0, sigma_max=0.02):
-        super().__init__()
-        self.sigma_min = sigma_min
-        self.sigma_max = sigma_max
-
-    def forward(self, x):
-        sigma = torch.empty(1, device=x.device).uniform_(self.sigma_min, self.sigma_max)
-        noise = torch.randn_like(x) * sigma
-        return (x + noise).clamp(0, 1)
-
-
 class TinyAugmenterWithTransform(torch.nn.Module):
     """Weak augmentation module that explicitly tracks sampled affine parameters."""
 
