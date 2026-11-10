@@ -114,15 +114,19 @@ class TinyAugmenterWithTransform(torch.nn.Module):
         )
 
 
-def compute_pearson_spatial_similarity(aligned_map, target_map, crop_margin=16, eps=1e-8):
-    """Compute Pearson zero-mean centered correlation on boundary-cropped spatial maps.
-
-    Removes positive DC offset so scattered background activations are strictly penalized.
+def compute_spatial_cosine_similarity(aligned_map, target_map, eps=1e-8):
+    """Direct spatial cosine similarity on aligned attention maps (used in streamlined sstpt.py).
+    
     aligned_map: [B, 1, H, W]
     target_map:  [B, 1, H, W]
     Returns: [B] similarity in [-1, 1]
     """
-    if aligned_map.shape[-2] > 2 * crop_margin and aligned_map.shape[-1] > 2 * crop_margin:
+    return F.cosine_similarity(aligned_map.flatten(1), target_map.flatten(1), dim=1, eps=eps)
+
+
+def compute_pearson_spatial_similarity(aligned_map, target_map, crop_margin=0, eps=1e-8):
+    """Zero-mean centered Pearson spatial correlation with optional boundary cropping."""
+    if crop_margin > 0 and aligned_map.shape[-2] > 2 * crop_margin and aligned_map.shape[-1] > 2 * crop_margin:
         aligned_crop = aligned_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
         target_crop = target_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
     else:

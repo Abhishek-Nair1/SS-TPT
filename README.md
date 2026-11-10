@@ -108,7 +108,7 @@ python analysis/generate_plots.py
 
 | Person | Ownership | Implemented Modules | Repository Locations |
 | :--- | :--- | :--- | :--- |
-| **Person 1** | **Task 1: Spatial Consistency** | Visual attention extraction hook (`AttentionPool2d`), affine parameter tracking (`TinyAugmenterWithTransform`), boundary cropping, Pearson spatial correlation, multiplicative reliability gate. | [`utils/spatial_metrics.py`](utils/spatial_metrics.py), [`docs/Task1_Gated_S3TPT_Guide.pdf`](docs/Task1_Gated_S3TPT_Guide.pdf) |
+| **Person 1** | **Task 1: Spatial Consistency** | Visual attention extraction hook (`AttentionPool2d`), affine parameter tracking (`TinyAugmenterWithTransform`), direct spatial cosine similarity, multiplicative reliability gate. | [`utils/spatial_metrics.py`](utils/spatial_metrics.py), [`docs/Task1_Gated_S3TPT_Guide.pdf`](docs/Task1_Gated_S3TPT_Guide.pdf) |
 | **Person 2** | **Task 2: Adaptive $\alpha(x)$** | Instance-level view score distribution modeling (`variance`, `margin`, `entropy`, `agreement`), temperature-scaled dynamic trade-off $\alpha(x)$. | [`utils/instance_alpha.py`](utils/instance_alpha.py), [`docs/Task2_Adaptive_Alpha.pptx`](docs/Task2_Adaptive_Alpha.pptx) |
 | **Person 3** | **Baseline, Master Integration & Benchmarks** | Unified execution engine (`sstpt.py`), unified experiment runner (`run_experiments.sh`), official 2,000-sample CSV logging (`results/`), statistical hypothesis tests (`analysis/`), master 4-row benchmark table. | [`sstpt.py`](sstpt.py), [`run_experiments.sh`](run_experiments.sh), [`results/`](results/), [`analysis/`](analysis/) |
 
@@ -170,16 +170,21 @@ attn_weights = model.visual.attnpool.last_attn_weights  # Shape: [B, num_heads, 
 spatial_map = attn_weights.mean(dim=1).view(B, 1, 7, 7)  # Spatial attention heatmap
 ```
 
-#### Affine Alignment & Pearson Correlation
+#### Affine Alignment & Spatial Cosine Similarity
 When a weak geometric augmentation $A_{weak}$ (rotation $\theta$, translation $(t_x, t_y)$, scaling $s$) is applied to view $x_i$, the spatial features physically shift. We track these transformation parameters explicitly using `TinyAugmenterWithTransform` and apply the matching affine transform to the base attention heatmap:
 
 ```python
 aligned_base_map = TF.affine(base_map, angle=theta, translate=(tx, ty), scale=scale, shear=0)
 ```
 
-To eliminate edge padding artifacts, we crop the inner $5 \times 5$ grid ($10\%$ border removal) and compute the zero-mean Pearson spatial correlation:
+In early iterations, zero-mean centered Pearson correlation and boundary cropping were tested. However, because the visual attention pooling grid is already compact ($7 \times 7 = 49$ tokens), cropping introduces boundary information loss, and centering adds numerical instability on near-uniform attention fields. The finalized, streamlined architecture directly computes **spatial cosine similarity** on the affine-aligned attention maps:
 
-$$C_i^{spatial} = \frac{\sum_{u, v} (A_{u,v} - \bar{A})(B_{u,v} - \bar{B})}{\sqrt{\sum (A_{u,v} - \bar{A})^2} \sqrt{\sum (B_{u,v} - \bar{B})^2} + \epsilon}$$
+$$C_i^{spatial} = \frac{\text{vec}(M_{aligned}) \cdot \text{vec}(M_{weak})}{\|\text{vec}(M_{aligned})\|_2 \|\text{vec}(M_{weak})\|_2 + \epsilon}$$
+
+```python
+# sstpt.py (Line 123)
+sim = F.cosine_similarity(aligned_base_map.flatten(1), weak_spatial_map.flatten(1), dim=1, eps=1e-8)
+```
 
 #### Multiplicative Reliability Gating
 Crucially, spatial consistency is combined via **multiplicative gating** ($\gamma = 0.10$):
@@ -233,7 +238,7 @@ The following table reflects the evaluation across **2,000 official test samples
 | Method | Clean (Caltech-101) | Adversarial PGD ($\epsilon=1/255$, 7 steps) | Distribution Shift (ImageNet-R) | Key Architectural Role |
 | :--- | :---: | :---: | :---: | :--- |
 | **1. SS-TPT baseline** | 83.65% *(base)* | 78.15% *(base)* | 53.20% *(base)* | Fixed $\alpha=0.25$, no spatial gating |
-| **2. SS-TPT + Spatial (Task 1)** | **83.95% (+0.30%)** | 78.70% *(+0.55%)* | 53.10% *(-0.10%)* | Attention pooling + Pearson spatial gate |
+| **2. SS-TPT + Spatial (Task 1)** | **83.95% (+0.30%)** | 78.70% *(+0.55%)* | 53.10% *(-0.10%)* | Attention pooling + Spatial cosine gate |
 | **3. SS-TPT + Adaptive $\alpha(x)$ (Task 2)** | 83.80% *(+0.15%)* | **78.40% (+0.25%)** | 53.15% *(-0.05%)* | Dynamic variance-based $\alpha(x)$ balance |
 | **4. Combined (Spatial + Adaptive $\alpha(x)$)** | 83.80% *(+0.15%)* | 77.95% *(-0.20%)* | 53.05% *(-0.15%)* | Full end-to-end unified formulation |
 
@@ -307,8 +312,12 @@ When presenting or explaining this project to professors, examiners, or peer res
 > $$\text{Attention}(Q, K) = \text{Softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) \in \mathbb{R}^{B \times H \times 1 \times 49}$$
 > Reshaping and averaging across the attention heads yields an explicit $7 \times 7$ spatial relevance heatmap corresponding to the input image.
 
-### Q5: Why is spatial affine alignment necessary before computing correlation?
-> **Answer:** Weak secondary augmentations include random rotations ($\pm 5^\circ$), translations ($\pm 4\%$), and scaling ($\pm 8\%$). If an object physically moves across the frame, its attention heatmap will also translate. Computing raw pixel correlation without alignment would incorrectly penalize genuinely robust views simply because the object moved. Our `TinyAugmenterWithTransform` records the exact affine transformation matrix $\theta = [A \mid b]$ and applies the matching transform to the reference attention map before computing Pearson correlation.
+### Q5: Why is spatial affine alignment necessary, and why use direct cosine similarity instead of Pearson/cropping?
+> **Answer:** Weak secondary augmentations include random rotations ($\pm 5^\circ$), translations ($\pm 4\%$), and scaling ($\pm 8\%$). If an object physically moves across the frame, its attention heatmap translates. Computing correlation without alignment would incorrectly penalize genuinely robust views simply because the object moved. Our `TinyAugmenterWithTransform` records the exact affine parameters and applies the matching transform to the reference attention map.
+> 
+> Furthermore, while zero-mean Pearson correlation and boundary cropping were explored in early prototypes, the final streamlined implementation uses **direct spatial cosine similarity**:
+> 1. CLIP's visual attention pooling grid is already compact ($7 \times 7 = 49$ tokens); boundary cropping unnecessarily discards valid periphery spatial activations.
+> 2. Direct cosine similarity provides smoother gradients, avoids division by near-zero variances on flat attention heatmaps, and runs faster on GPU.
 
 ### Q6: Why did you use multiplicative reliability gating rather than additive weighting?
 > **Answer:** In additive combination ($S = S^{base} + \gamma C^{spatial}$), if a view has completely collapsed due to adversarial corruption ($S^{base} \approx 0$), spurious background attention overlap ($C^{spatial} > 0$) would assign it a non-zero score and allow it to participate in prompt tuning. Multiplicative gating:
