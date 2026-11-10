@@ -10,13 +10,17 @@ Outputs:
 
 import json
 import os
+import sys
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tests_ablations.data_and_models import BENCHMARK_RESULTS
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from analysis.data_and_models import BENCHMARK_RESULTS
+
 FIGURES_DIR = REPO_ROOT / "analysis" / "figures"
 
 
