@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from utils.spatial_metrics import (
     TinyAugmenterWithTransform,
-    compute_pearson_spatial_similarity,
+    compute_spatial_cosine_similarity,
     min_max_normalize,
     combine_all_scores,
 )
@@ -28,21 +28,22 @@ class TestSpatialMetrics(unittest.TestCase):
         aligned_map = augmenter.align_spatial_map(spatial_map, params)
         self.assertEqual(aligned_map.shape, spatial_map.shape)
 
-    def test_pearson_similarity_identical(self):
-        # A patterned heatmap identical to itself
+    def test_spatial_cosine_similarity_identical(self):
+        # A patterned heatmap identical to itself -> cosine similarity = 1.0
         base = torch.zeros(2, 1, 64, 64)
         base[:, :, 20:44, 20:44] = 1.0  # Center activation box
-        sim = compute_pearson_spatial_similarity(base, base, crop_margin=4)
+        sim = compute_spatial_cosine_similarity(base, base)
         self.assertEqual(sim.shape, torch.Size([2]))
         self.assertTrue(torch.allclose(sim, torch.tensor([1.0, 1.0]), atol=1e-5))
 
-    def test_pearson_similarity_inverted(self):
-        # Inverted activation
+    def test_spatial_cosine_similarity_orthogonal(self):
+        # Completely disjoint non-overlapping activations -> cosine similarity = 0.0
         base = torch.zeros(2, 1, 64, 64)
-        base[:, :, 20:44, 20:44] = 1.0
-        inverted = 1.0 - base
-        sim = compute_pearson_spatial_similarity(base, inverted, crop_margin=4)
-        self.assertTrue(torch.allclose(sim, torch.tensor([-1.0, -1.0]), atol=1e-5))
+        base[:, :, :32, :] = 1.0
+        other = torch.zeros(2, 1, 64, 64)
+        other[:, :, 32:, :] = 1.0
+        sim = compute_spatial_cosine_similarity(base, other)
+        self.assertTrue(torch.allclose(sim, torch.tensor([0.0, 0.0]), atol=1e-5))
 
     def test_min_max_normalize(self):
         flat = torch.full((5,), 4.0)

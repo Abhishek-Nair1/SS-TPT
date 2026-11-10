@@ -2,7 +2,7 @@
 
 Provides:
 - TinyAugmenterWithTransform: geometric weak augmentation tracking affine parameters.
-- compute_pearson_spatial_similarity: zero-mean centered correlation on cropped heatmaps.
+- compute_spatial_cosine_similarity: direct cosine similarity on aligned spatial attention maps.
 - combine_all_scores: unified scoring combining suitability, stability, and spatial consistency.
 """
 
@@ -115,32 +115,13 @@ class TinyAugmenterWithTransform(torch.nn.Module):
 
 
 def compute_spatial_cosine_similarity(aligned_map, target_map, eps=1e-8):
-    """Direct spatial cosine similarity on aligned attention maps (used in streamlined sstpt.py).
+    """Direct spatial cosine similarity on aligned attention maps.
     
     aligned_map: [B, 1, H, W]
     target_map:  [B, 1, H, W]
     Returns: [B] similarity in [-1, 1]
     """
     return F.cosine_similarity(aligned_map.flatten(1), target_map.flatten(1), dim=1, eps=eps)
-
-
-def compute_pearson_spatial_similarity(aligned_map, target_map, crop_margin=0, eps=1e-8):
-    """Zero-mean centered Pearson spatial correlation with optional boundary cropping."""
-    if crop_margin > 0 and aligned_map.shape[-2] > 2 * crop_margin and aligned_map.shape[-1] > 2 * crop_margin:
-        aligned_crop = aligned_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
-        target_crop = target_map[:, :, crop_margin:-crop_margin, crop_margin:-crop_margin]
-    else:
-        aligned_crop = aligned_map
-        target_crop = target_map
-
-    u = aligned_crop.flatten(1)
-    v = target_crop.flatten(1)
-
-    u_c = u - u.mean(dim=1, keepdim=True)
-    v_c = v - v.mean(dim=1, keepdim=True)
-
-    sim = F.cosine_similarity(u_c, v_c, dim=1, eps=eps)
-    return sim
 
 
 def min_max_normalize(score, eps=1e-8):

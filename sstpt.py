@@ -48,7 +48,7 @@ from utils.instance_alpha import (
 from utils.spatial_metrics import (
     AddGaussianNoise,
     TinyAugmenterWithTransform,
-    compute_pearson_spatial_similarity,
+    compute_spatial_cosine_similarity,
     min_max_normalize,
     combine_all_scores,
 )

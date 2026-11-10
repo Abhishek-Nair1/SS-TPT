@@ -259,7 +259,7 @@ SS-TPT/
 ├── quick_demo.sh                        # Fast 10-second GPU demo (5 samples)
 │
 ├── utils/
-│   ├── spatial_metrics.py               # Task 1: Attention tracking, Pearson corr, gating
+│   ├── spatial_metrics.py               # Task 1: Attention tracking, spatial cosine gate
 │   ├── instance_alpha.py                # Task 2: Variance, margin, entropy alpha(x) modes
 │   ├── tools.py                         # Logging, meters, accuracy, checkpoint utils
 │   ├── test_spatial_metrics.py          # Unit tests for Task 1
@@ -330,7 +330,7 @@ When presenting or explaining this project to professors, examiners, or peer res
 ### Q8: What are the computational overheads, and how is efficiency preserved?
 > **Answer:** 
 > 1. Attention extraction from `AttentionPool2d` is zero-cost because attention weights are already computed during the standard visual forward pass; we simply cache the tensor with a hook.
-> 2. Affine transformation and Pearson correlation operate on small $7 \times 7$ downsampled heatmaps, which executes on GPU in less than 2 milliseconds.
+> 2. Affine transformation and spatial cosine similarity operate on small $7 \times 7$ downsampled heatmaps, which executes on GPU in less than 2 milliseconds.
 > 3. Task 2 adaptive alpha requires only simple scalar statistics (variance/margin) on already computed view logits.
 > As a result, the entire pipeline processes each test image in ~0.74 seconds on a single GPU.
 
@@ -354,7 +354,7 @@ The repository includes ready-to-present documentation and slide decks in [`docs
 2. **[`docs/Task2_Adaptive_Alpha.pptx`](docs/Task2_Adaptive_Alpha.pptx)**  
    *Dedicated slide deck focusing on Task 2: dynamic instance-level $\alpha(x)$ modeling, variance-based formulation, and ablation experiments.*
 3. **[`docs/Task1_Gated_S3TPT_Guide.pdf`](docs/Task1_Gated_S3TPT_Guide.pdf)**  
-   *Complete academic PDF document deriving Task 1 spatial attention pooling, affine normalization, and Pearson correlation.*
+   *Complete academic PDF document deriving Task 1 spatial attention pooling, affine normalization, and gated spatial consistency.*
 
 ---
 

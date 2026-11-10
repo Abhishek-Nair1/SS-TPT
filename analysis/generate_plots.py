@@ -5,7 +5,7 @@ Outputs:
   - analysis/figures/figure1_principal_comparison.png: 4-method grouped bar chart across 3 regimes.
   - analysis/figures/figure2_accuracy_vs_runtime.png: Accuracy vs Runtime trade-off.
   - analysis/figures/figure3_instance_alpha_distributions.png: alpha(x) density under clean vs adv.
-  - analysis/figures/figure4_spatial_correlation_distribution.png: Pearson spatial score density.
+  - analysis/figures/figure4_spatial_correlation_distribution.png: Spatial cosine similarity score density.
 """
 
 import json
@@ -178,7 +178,7 @@ def plot_spatial_correlations():
     ax.hist(clean_spat, bins=30, alpha=0.6, label="Clean Views", color="#1b9e77", density=True, edgecolor="black")
     ax.hist(adv_spat, bins=30, alpha=0.6, label="Adversarial Views", color="#e7298a", density=True, edgecolor="black")
 
-    ax.set_xlabel("Pearson Zero-Mean Spatial Consistency Score", fontweight="bold")
+    ax.set_xlabel("Spatial Attention Cosine Similarity Score", fontweight="bold")
     ax.set_ylabel("Probability Density", fontweight="bold")
     ax.set_title("Cross-View Spatial Consistency Score Distribution", pad=12, fontweight="bold")
     ax.legend(frameon=True)

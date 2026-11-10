@@ -78,7 +78,7 @@ class TestMethodIntegration(unittest.TestCase):
         torch.manual_seed(123)
         self.suit = torch.rand(16) * 10.0
         self.stab = torch.rand(16) * 8.0
-        self.spat = torch.rand(16) * 2.0 - 1.0  # Pearson correlation in [-1, 1]
+        self.spat = torch.rand(16) * 2.0 - 1.0  # Spatial cosine similarity in [-1, 1]
 
     def test_row1_baseline(self):
         """Method 1: SS-TPT Baseline."""
